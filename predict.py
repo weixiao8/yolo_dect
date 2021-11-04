@@ -2,17 +2,17 @@
 #   predict.py将单张图片预测、摄像头检测、FPS测试和目录遍历检测等功能
 #   整合到了一个py文件中，通过指定mode进行模式的修改。
 #-----------------------------------------------------------------------#
-import time
+
 
 import cv2
 import numpy as np
 from PIL import Image
 
 from yolo import YOLO
-import os, sys
+import os , sys
 import time
-
-
+from io import BytesIO
+imagefile = BytesIO()
 
 def base_path(path):
     if getattr(sys, 'frozen', None):
@@ -59,7 +59,11 @@ def start_predict():
     #-------------------------------------------------------------------------#
     dir_origin_path = "img/"
     dir_save_path   = "img_out/"
-
+    path = "frame_out/"
+    import os
+    folder = os.path.exists(path)
+    if not folder:  # 判断是否存在文件夹如果不存在则创建为文件夹
+        os.makedirs(path)
     if mode == "predict":
         '''
         1、如果想要进行检测完的图片的保存，利用r_image.save("img.jpg")即可保存，直接在predict.py里进行修改即可。 
@@ -88,6 +92,7 @@ def start_predict():
             out     = cv2.VideoWriter(video_save_path, fourcc, video_fps, size)
 
         fps = 0.0
+        count_flag = 0
         while(True):
             t1 = time.time()
             # 读取某一帧
@@ -104,8 +109,14 @@ def start_predict():
             fps  = ( fps + (1./(time.time()-t1)) ) / 2
             print("fps= %.2f"%(fps))
             frame = cv2.putText(frame, "fps= %.2f"%(fps), (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
-
+            # with open(filename, 'w') as file_object:
+            #     file_object.write(frame)
+            if count_flag < 3:
+                savefile = "frame_out/"+str(count_flag)+"_out"
+                np.save(savefile, frame)
+                count_flag += 1
+            if count_flag == 3:
+                count_flag = 0
             cv2.imshow("video", frame)
             c = cv2.waitKey(1) & 0xff
             if video_save_path != "":
@@ -116,7 +127,7 @@ def start_predict():
                 break
 
         capture.release()
-        out.release()
+        # out.release()
         cv2.destroyAllWindows()
 
     elif mode == "fps":
